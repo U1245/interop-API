@@ -122,26 +122,30 @@ def get_qscore_data(data_folder, run_metrics, valid_to_load):
     boundary = 30
     options = py_interop_plot.filter_options(run_metrics.run_info().flowcell().naming_method())
 
-    py_interop_plot.plot_qscore_histogram(run_metrics, options, bar_data, boundary)
+    py_interop_plot.plot_qscore_histogram(run_metrics, options, bar_data)
     
     values = {}
-
+    widths = {}
     for i in range(bar_data.size()):
         for j in range(bar_data.at(i).size()):
             x = bar_data.at(i).at(j).x()
             y = bar_data.at(i).at(j).y()
+            width = bar_data.at(i).at(j).width()
             values[int(x)] = y
-        # print([bar_data.at(i).at(j).width() for j in range(bar_data.at(i).size())], '\n')
+            widths[int(x)] = width
 
     for x_lbl in range(int(bar_data.xyaxes().x().max())):
         if x_lbl + 1 not in values.keys():
             values[x_lbl + 1] = 0
+            widths[x_lbl + 1] = 0
 
     ordered_values = collections.OrderedDict(sorted(values.items()))
+    ordered_widths = collections.OrderedDict(sorted(widths.items()))
 
     result = {
         'x_labels' : list(ordered_values.keys()),
         'data': list(ordered_values.values()),
+        'widths': list(ordered_widths.values()),
         'title': bar_data.title(),
         'x_title': bar_data.xyaxes().x().label(),
         'y_title': bar_data.xyaxes().y().label(),
