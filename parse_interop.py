@@ -109,7 +109,6 @@ def run_summary(data_folder, run_metrics, valid_to_load):
     return result
 
 
-
 def get_qscore_data(data_folder, run_metrics, valid_to_load):
     """
     Gets the QScore plot data (Number of cluster vs qscore)

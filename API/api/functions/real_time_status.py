@@ -18,6 +18,81 @@ def human_format(num):
         num /= 1000.0
     return '%.1f%s' % (num, ['', 'K', 'M', 'G', 'T', 'P'][level])
 
+def format_q30_plot_data(data, is_nextseq):
+    """
+    Formats the Q30 plot data specifically for the Sparta front-end
+    """
+    if is_nextseq:
+        max_x_label = int(sum(data['widths']) + 10)
+    else:
+        last_idx = 45
+        for idx, val in enumerate(data['data']):
+            if val != 0:
+                last_idx = idx
+        data['data'] = data['data'][:last_idx + 1]
+        max_x_label = len(data['data']) + 1
+
+    plot_data = {}
+    plot_data['data'] = {
+                    'charts': {
+                        'level': 'Q score',
+                        'dataset_label': data['x_title'],
+                        'header': data['x_title'],
+                        'subheader': '',
+                        'xaxis_labels': [i for i in range(1, max_x_label + 1)],#data['x_labels'],
+                        'x_limits': [{'read': '30', 'cycle_nb': 30}],
+                        'yaxis_label': data['y_title'],
+                        'series': {
+                            'data': [], 
+                            'metadata': {
+                                'limits': [{'read': '30', 'cycle_nb': 30}],
+                            }
+                        }
+                    }
+                }
+    
+    # Add the qscore serie data, which is different depending on the sequencer type
+    if not is_nextseq:
+        plot_data['data']['charts']['series']['data'] = [
+                {'name': data['x_title'], 'data': [{'x': data['x_labels'][idx], 'y': y} for idx, y in enumerate(data['data'][:29])]},
+                {'name': data['x_title'], 'data': [{'x': data['x_labels'][idx + 29], 'y': y} for idx, y in enumerate(data['data'][29:])], 'color': '#08a11c'}
+            ]
+        chart_type = 'column'
+
+    else:
+        chart_type = 'area'
+        previous_value = None
+        previous_width = 0
+        for idx, point in enumerate(data['data']):
+            status = 'id' if idx == 0 else 'linkedTo'
+
+            d = []
+            if not previous_width:
+                for i in range(int(data['widths'][idx])):
+                    d.append(None)
+                serie = {status: 'nextseq-series', 'name': data['x_title'], 'data': d, 'marker': {'enabled': False}}
+                plot_data['data']['charts']['series']['data'].append(serie)
+                d = []
+                previous_width = previous_width + int(data['widths'][idx]-1)
+    
+            for i in range(previous_width):
+                    d.append(None)
+
+            for i in range(int(data['widths'][idx])+1):
+                d.append(point)
+
+            hex_color = ('#f2fbff', '#4db0e8') if previous_width < 29 else ('#faffff', '#95edeb')
+            color = {'linearGradient': {'x1': 0, 'y1': 1, 'x2': 0, 'y2': 0},
+                    'stops': [[0, hex_color[0]], [1, hex_color[1]]]
+                    } 
+            serie = {status: 'nextseq-series', 'name': data['x_title'], 'data': d, 'marker': {'enabled': False}, 'color': color}
+            plot_data['data']['charts']['series']['data'].append(serie)
+            previous_width = previous_width + int(data['widths'][idx])
+
+    plot_data['options'] = {'value': {'scale': 'interop', 'chart': chart_type}}
+    return plot_data
+
+
 ## RUN INFO
 def run_info(data_folder, result):
     """
@@ -50,7 +125,7 @@ def metrics(data_folder, result):
     return result
 
 ## SUMMARY
-def summary(data_folder, result):
+def summary(data_folder, result, is_nextseq=False):
     """
     """
     run_metrics = py_interop_run_metrics.run_metrics()
@@ -81,9 +156,10 @@ def summary(data_folder, result):
             cluster.append(summary.at(read_id).at(lane_id).cluster_count().mean())
             cluster_pf.append(summary.at(read_id).at(lane_id).cluster_count_pf().mean())
 
-    result['p_gt_q30'] = summary.total_summary().percent_gt_q30()
-    result['q30_plot'] = get_qscore_data(data_folder, run_metrics, valid_to_load) # summary.total_summary().percent_gt_q30()
-
+    plot_data = get_qscore_data(data_folder, run_metrics, valid_to_load, is_nextseq)
+    result['q30_plot'] = format_q30_plot_data(plot_data, is_nextseq)
+    
+    result['p_gt_q30'] = human_format(summary.total_summary().percent_gt_q30()) + '%'
     result['total_yield'] = human_format(summary.total_summary().yield_g()) + 'Gb'
     result['percent_aligned'] = human_format(summary.total_summary().percent_aligned()) + '%'
     
@@ -95,7 +171,7 @@ def summary(data_folder, result):
 def get_latest_run_status(path, ns_tracking_files_dir, NS_completed_file, MS_completed_file, status):
     """
     """
-    # Gets the latest runs
+    # Get the latest runs
     latest_runs = {}
     for seq_dir in [f.path for f in os.scandir(path) if f.is_dir()]:
         if 'LOGS' not in seq_dir:
@@ -103,13 +179,12 @@ def get_latest_run_status(path, ns_tracking_files_dir, NS_completed_file, MS_com
             last_run = max(run_dirs, key=os.path.getmtime)
             latest_runs[seq_dir.split('/')[-1]] = last_run
 
-    # Parses the latest runs
+    # Parse the latest runs
     result = {}
     for seq, last_run_dir in latest_runs.items():
         status = 'Idle'
         error = ''
         for folder in os.scandir(last_run_dir):
-            
             if ns_tracking_files_dir in folder.path:
                 track_dir = last_run_dir + '/' + ns_tracking_files_dir
                 tracking_files = [track_file.path for track_file in os.scandir(track_dir) if os.path.isfile(track_file)]
@@ -144,7 +219,7 @@ def get_latest_run_status(path, ns_tracking_files_dir, NS_completed_file, MS_com
         result[seq] = {}
         total_cycle = run_info(last_run_dir, result[seq])
         last_cycle = metrics(last_run_dir, result[seq])
-        summary(last_run_dir, result[seq])
+        summary(last_run_dir, result[seq], is_nextseq=seq=='NextSeq')
 
         if last_cycle['last_cycle'] != last_cycle['total_cycles']:
             status = 'Running - current cycle :' + str(last_cycle['last_cycle'])
