@@ -53,9 +53,18 @@ def format_q30_plot_data(data, is_nextseq):
     
     # Add the qscore serie data, which is different depending on the sequencer type
     if not is_nextseq:
+        low_hex_color = ('#f2fbff', '#4db0e8')
+        high_hex_color = ('#ebffeb', '#08a11c')
+        low_color = {'linearGradient': {'x1': 0, 'y1': 1, 'x2': 0, 'y2': 0},
+                'stops': [[0, low_hex_color[0]], [1, low_hex_color[1]]]
+                }
+        high_color = {'linearGradient': {'x1': 0, 'y1': 1, 'x2': 0, 'y2': 0},
+                'stops': [[0, high_hex_color[0]], [1, high_hex_color[1]]]
+                }
+
         plot_data['data']['charts']['series']['data'] = [
-                {'name': data['x_title'], 'data': [{'x': data['x_labels'][idx], 'y': y} for idx, y in enumerate(data['data'][:29])]},
-                {'name': data['x_title'], 'data': [{'x': data['x_labels'][idx + 29], 'y': y} for idx, y in enumerate(data['data'][29:])], 'color': '#08a11c'}
+                {'name': data['x_title'], 'data': [{'x': data['x_labels'][idx], 'y': y} for idx, y in enumerate(data['data'][:29])], 'color': low_color},
+                {'name': data['x_title'], 'data': [{'x': data['x_labels'][idx + 29], 'y': y} for idx, y in enumerate(data['data'][29:])], 'color': high_color} # '#08a11c'}
             ]
         chart_type = 'column'
 
