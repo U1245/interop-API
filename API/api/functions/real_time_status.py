@@ -16,6 +16,8 @@ def human_format(num):
     while abs(num) >= 1000:
         level += 1
         num /= 1000.0
+    
+    if np.isnan(num): return '-' 
     return '%.1f%s' % (num, ['', 'K', 'M', 'G', 'T', 'P'][level])
 
 def format_q30_plot_data(data, is_nextseq):
@@ -37,7 +39,7 @@ def format_q30_plot_data(data, is_nextseq):
                     'charts': {
                         'level': 'Q score',
                         'dataset_label': data['x_title'],
-                        'header': data['x_title'],
+                        'header': '', #data['x_title'],
                         'subheader': '',
                         'xaxis_labels': [i for i in range(1, max_x_label + 1)],#data['x_labels'],
                         'x_limits': [{'read': '30', 'cycle_nb': 30}],
@@ -108,6 +110,7 @@ def run_info(data_folder, result):
     """
     run_info = py_interop_run.info()
     run_info.read(data_folder)
+
     total_cycles = run_info.total_cycles()
     date = datetime.strptime(run_info.date(), '%y%m%d')
 
@@ -168,16 +171,80 @@ def summary(data_folder, result, is_nextseq=False):
     plot_data = get_qscore_data(data_folder, run_metrics, valid_to_load, is_nextseq)
     result['q30_plot'] = format_q30_plot_data(plot_data, is_nextseq)
     
-    result['p_gt_q30'] = human_format(summary.total_summary().percent_gt_q30()) + '%'
-    result['total_yield'] = human_format(summary.total_summary().yield_g()) + 'Gb'
-    result['percent_aligned'] = human_format(summary.total_summary().percent_aligned()) + '%'
+    gt30 = human_format(summary.total_summary().percent_gt_q30())
+    tot_yield = human_format(summary.total_summary().yield_g())
+    perc_alig = human_format(summary.total_summary().percent_aligned())
+    clus_dens = human_format(np.mean(density))
+    clus_pf_perc = human_format(np.mean(cluster_pf) / np.mean(cluster) * 100)
+
+    result['p_gt_q30'] = gt30 + '%'
+    result['total_yield'] = tot_yield + 'Gb'
+    result['percent_aligned'] = perc_alig + '%'
     
-    result['cluster_density'] = human_format(np.mean(density)) + '/mm²'
-    result['cluster_pf_percent'] = human_format(np.mean(cluster_pf) / np.mean(cluster) * 100) + '%'
+    result['cluster_density'] = clus_dens + '/mm²'
+    result['cluster_pf_percent'] = clus_pf_perc + '%'
     return result
 
+def handle_initializing_run(result):
+    msg = 'Run is initializing'
 
-def get_latest_run_status(path, ns_tracking_files_dir, NS_completed_file, MS_completed_file, status):
+    result['paired-end'] = msg
+    result['total_cycles'] = 0
+    result['last_cycle'] = 0
+    result['inst_name'] = ''
+    result['run_name'] = msg
+    result['date'] = ''
+    result['flowcell_id'] = msg
+
+    result['p_gt_q30'] = ''
+    result['total_yield'] = ''
+    result['percent_aligned'] = ''
+    result['cluster_density'] = ''
+    result['cluster_pf_percent'] = ''
+    result['reads'] = []
+    result['q30_plot'] = {
+        'data':{ 'charts': {
+                        'level': 'Q score',
+                        'dataset_label': '',
+                        'header': '',
+                        'subheader': '',
+                        'xaxis_labels': [],
+                        'x_limits': [],
+                        'yaxis_label': '',
+                        'series': {
+                            'data': [], 
+                            'metadata': {
+                                'limits': [{'read': '', 'cycle_nb': 0}],
+                            }
+                        }
+                }
+            },
+        'options': {'value': {'scale': 'interop', 'chart': ''}}
+    }
+    result['status'] = 'Initializing'
+    result['error'] = ''
+    return result
+
+def run_parameters(data_folder, result, seq):
+
+
+    param_file = ('R' if seq == 'NextSeq' else 'r') + 'unParameters.xml'
+
+    param_tree = ET.parse(data_folder + '/' + param_file)
+    root = param_tree.getroot()
+    
+    flowcell_node = root.find('FlowCellRfidTag' if seq == 'NextSeq' else 'FlowcellRFIDTag')
+    pr2_node = root.find('PR2BottleRfidTag' if seq == 'NextSeq' else 'PR2BottleRFIDTag')
+    reagent_node = root.find('ReagentKitRfidTag' if seq == 'NextSeq' else 'ReagentKitRFIDTag')
+
+    result['reagents'] = {}
+    result['reagents']['flowcell'] = {child.tag: child.text for child in flowcell_node}
+    result['reagents']['pr2_bottle'] = {child.tag: child.text for child in pr2_node}
+    result['reagents']['reagent_kit'] = {child.tag: child.text for child in reagent_node}
+    
+
+
+def get_latest_run_status(path, ns_tracking_files_dir, NS_completion_file, MS_completion_file, status):
     """
     """
     # Get the latest runs
@@ -192,49 +259,55 @@ def get_latest_run_status(path, ns_tracking_files_dir, NS_completed_file, MS_com
     result = {}
     for seq, last_run_dir in latest_runs.items():
         status = 'Idle'
+        completion_dt = ''
         error = ''
-        for folder in os.scandir(last_run_dir):
-            if ns_tracking_files_dir in folder.path:
-                track_dir = last_run_dir + '/' + ns_tracking_files_dir
-                tracking_files = [track_file.path for track_file in os.scandir(track_dir) if os.path.isfile(track_file)]
-                last_track_file = max(tracking_files, key=os.path.getmtime)
-                
-                spltd_track_file = last_track_file.split('__')
-                if spltd_track_file[4] == 'RunCycle': 
-                    cycle_nb = spltd_track_file[5].split('.')[0]
-                    status = 'Nextseq Running - Current cycle : ' + cycle_nb
-                elif spltd_track_file[4] == 'RunSetup': status = 'Run starting'
-            
-            if NS_completed_file in folder.path:
-                tree = ET.parse(last_run_dir + '/' + NS_completed_file)
-                ctime = os.path.getmtime(last_run_dir + '/' + NS_completed_file)
 
+        for folder in os.scandir(last_run_dir):
+            if NS_completion_file in folder.path:
+                                    
+                # Run status
+                tree = ET.parse(last_run_dir + '/' + NS_completion_file)
                 root = tree.getroot()
                 status_node = root.find('CompletionStatus')
                 error_node = root.find('ErrorDescription')
 
-                status = status_node.text
+                # Completion datetime : last modification of the 'NS_completion_file' file
+                timestamp = os.path.getmtime(last_run_dir + '/' + NS_completion_file)
+
+                if 'completedasplanned' in status_node.text.lower(): status = 'Completed on' 
+                completion_dt = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d   %H:%M')
                 error = error_node.text
             
-            if MS_completed_file in folder.path:
-                tree = ET.parse(last_run_dir + '/' + MS_completed_file)
+            if MS_completion_file in folder.path:
+                tree = ET.parse(last_run_dir + '/' + MS_completion_file)
                 root = tree.getroot()
                 status_node = root.find('CompletionTime')
-                dt = status_node.text
+                # dt = status_node.text
                 dt = status_node.text.split('T')
 
-                status = 'Run completed on ' + dt[0] + ' at ' + dt[1].split('.')[0]
+                status = 'Completed on'
+                completion_dt = dt[0] + '   ' + ':'.join( dt[1].split('.')[0].split(':', 2)[:2] )
         
+        # Collects the results & status
         result[seq] = {}
+
+        # ... Handles the run initialization
+        if not os.path.isfile(last_run_dir + '/RunInfo.xml'):
+            result[seq] = handle_initializing_run(result[seq])
+            continue
+
+        # ... Collects the run data
         total_cycle = run_info(last_run_dir, result[seq])
         last_cycle = metrics(last_run_dir, result[seq])
         summary(last_run_dir, result[seq], is_nextseq=seq=='NextSeq')
+        run_parameters(last_run_dir, result[seq], seq)
 
-        if last_cycle['last_cycle'] != last_cycle['total_cycles']:
-            status = 'Running - current cycle :' + str(last_cycle['last_cycle'])
+        if last_cycle['last_cycle'] != last_cycle['total_cycles'] and status == 'Idle':
+            status = 'Running'
         
         result[seq]['status'] = status
         result[seq]['error'] = error
+        result[seq]['completion_dt'] = completion_dt
 
     return result
 
