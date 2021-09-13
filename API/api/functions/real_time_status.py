@@ -39,9 +39,9 @@ def format_q30_plot_data(data, is_nextseq):
                     'charts': {
                         'level': 'Q score',
                         'dataset_label': data['x_title'],
-                        'header': '', #data['x_title'],
+                        'header': '',
                         'subheader': '',
-                        'xaxis_labels': [i for i in range(1, max_x_label + 1)],#data['x_labels'],
+                        'xaxis_labels': [i for i in range(1, max_x_label + 1)],
                         'x_limits': [{'read': '30', 'cycle_nb': 30}],
                         'yaxis_label': data['y_title'],
                         'series': {
@@ -66,7 +66,7 @@ def format_q30_plot_data(data, is_nextseq):
 
         plot_data['data']['charts']['series']['data'] = [
                 {'name': data['x_title'], 'data': [{'x': data['x_labels'][idx], 'y': y} for idx, y in enumerate(data['data'][:29])], 'color': low_color},
-                {'name': data['x_title'], 'data': [{'x': data['x_labels'][idx + 29], 'y': y} for idx, y in enumerate(data['data'][29:])], 'color': high_color} # '#08a11c'}
+                {'name': data['x_title'], 'data': [{'x': data['x_labels'][idx + 29], 'y': y} for idx, y in enumerate(data['data'][29:])], 'color': high_color}
             ]
         chart_type = 'column'
 
@@ -120,7 +120,6 @@ def run_info(data_folder, result):
     result['run_name'] = run_info.name()
     result['date'] = date.strftime('%d/%m/%Y')
     result['flowcell_id'] = run_info.flowcell_id()
-    return result
 
 ## EXTRACTION METRICS
 def metrics(data_folder, result):
@@ -236,12 +235,13 @@ def run_parameters(data_folder, result, seq):
     flowcell_node = root.find('FlowCellRfidTag' if seq == 'NextSeq' else 'FlowcellRFIDTag')
     pr2_node = root.find('PR2BottleRfidTag' if seq == 'NextSeq' else 'PR2BottleRFIDTag')
     reagent_node = root.find('ReagentKitRfidTag' if seq == 'NextSeq' else 'ReagentKitRFIDTag')
+    exp_name = root.find('ExperimentName')
 
     result['reagents'] = {}
     result['reagents']['flowcell'] = {child.tag: child.text for child in flowcell_node}
     result['reagents']['pr2_bottle'] = {child.tag: child.text for child in pr2_node}
     result['reagents']['reagent_kit'] = {child.tag: child.text for child in reagent_node}
-    
+    result['exp_name'] = '(' + exp_name.text + ')' if exp_name else ''
 
 
 def get_latest_run_status(path, ns_tracking_files_dir, NS_completion_file, MS_completion_file, status):
@@ -297,13 +297,15 @@ def get_latest_run_status(path, ns_tracking_files_dir, NS_completion_file, MS_co
             continue
 
         # ... Collects the run data
-        total_cycle = run_info(last_run_dir, result[seq])
+        run_info(last_run_dir, result[seq])
         last_cycle = metrics(last_run_dir, result[seq])
         summary(last_run_dir, result[seq], is_nextseq=seq=='NextSeq')
         run_parameters(last_run_dir, result[seq], seq)
 
         if last_cycle['last_cycle'] != last_cycle['total_cycles'] and status == 'Idle':
             status = 'Running'
+
+        if last_cycle['last_cycle'] == 0: status = 'Initializing'
         
         result[seq]['status'] = status
         result[seq]['error'] = error
