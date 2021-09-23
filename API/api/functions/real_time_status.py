@@ -241,8 +241,11 @@ def run_parameters(data_folder, result, seq):
     result['reagents']['flowcell'] = {child.tag: child.text for child in flowcell_node}
     result['reagents']['pr2_bottle'] = {child.tag: child.text for child in pr2_node}
     result['reagents']['reagent_kit'] = {child.tag: child.text for child in reagent_node}
-    result['exp_name'] = '(' + exp_name.text + ')' if exp_name.tag else ''
-
+    try:
+        if exp_name.tag: result['exp_name'] = exp_name.text
+    
+    except AttributeError:
+        result['exp_name'] = ''
 
 def get_latest_run_status(path, ns_tracking_files_dir, NS_completion_file, MS_completion_file, status):
     """
