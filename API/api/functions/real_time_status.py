@@ -308,16 +308,14 @@ def run_parameters(data_folder, result, seq):
     except AttributeError:
         result['exp_name'] = ''
 
-def get_latest_run_status(path, ns_tracking_files_dir, NS_completion_file, MS_completion_file, status):
+def get_latest_run_status(path, NS_completion_file, MS_completion_file):
     """
     Main method called to update the sequencer real-time status.
 
     Args:
         path (str): directory containing data of all the sequencers
-        ns_tracking_files_dir (str): TO BE REMOVED
         NS_completion_file (str): name of the file produced by the nextseq when the run is over
         MS_completion_file (str): name of the file produced by the miseq when the run is over
-        status (str): sequencer default on-going status
 
     Returns:
         [dict]: global SAV result dict
@@ -333,7 +331,7 @@ def get_latest_run_status(path, ns_tracking_files_dir, NS_completion_file, MS_co
     # Parse the latest runs
     result = {}
     for seq, last_run_dir in latest_runs.items():
-        # status = 'Idle'
+        status = 'Idle'
         completion_dt = ''
         error = ''
 

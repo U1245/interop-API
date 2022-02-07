@@ -16,12 +16,10 @@ def real_time_data():
     Returns:
         [dict]: global SAV result dict
     """
-
+ 
     path = '/storage/IN/'
-    ns_tracking_files_dir = 'InstrumentAnalyticsLogs'
     NS_completed_file = 'RunCompletionStatus.xml'
     MS_completed_file = 'CompletedJobInfo.xml'
-    status = 'Idle'
 
-    result = get_latest_run_status(path, ns_tracking_files_dir, NS_completed_file, MS_completed_file, status)
+    result = get_latest_run_status(path, NS_completed_file, MS_completed_file)
     return result
