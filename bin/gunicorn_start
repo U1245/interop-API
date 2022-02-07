@@ -1,8 +1,8 @@
 #!/bin/bash
 
 NAME="interop_api"                            # Name of the application
-FLASKDIR=SOME_PATH/interop/API                # Flask project directory
-SOCKFILE=SOME_PATH/interop/run/gunicorn.sock  # we will communicte using this unix socket
+FLASKDIR=                                     # This Flask project directory
+SOCKFILE=                                     # we will communicte using this unix socket
 USER=                                         # the user to run as
 GROUP=                                        # the group to run as
 NUM_WORKERS=3                                 # how many worker processes should Gunicorn spawn
