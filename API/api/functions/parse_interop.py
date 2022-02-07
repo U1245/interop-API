@@ -13,15 +13,14 @@ def run_summary(data_folder, run_metrics, valid_to_load):
     """
     Gets the summary of a run
     """
-
+    # Defines some class instances
     py_interop_run_metrics.list_summary_metrics_to_load(valid_to_load)
     run_metrics.read(data_folder, valid_to_load)
 
     summary = py_interop_summary.run_summary()
     py_interop_summary.summarize_run_metrics(run_metrics, summary)
 
-    # print("\n".join([method for method in dir(summary.total_summary()) if not method.startswith('_') and method not in ("this", "resize")]))
-
+    # Defines the columns to get
     columns = (
         ('Yield Total (G)', 'yield_g'), 
         ('Projected Yield (G)', 'projected_yield_g'), 
@@ -31,19 +30,18 @@ def run_summary(data_folder, run_metrics, valid_to_load):
         ('Error rate', 'error_rate')
         )
 
+    # Builds the rows
     rows = [("Read %s%d"%("(I)" if summary.at(i).read().is_index()  else " ", summary.at(i).read().number()), summary.at(i).summary()) for i in range(summary.size())]
     rows.append(('Non-Indexed Total', summary.nonindex_summary()))
     rows.append(('Total', summary.total_summary()))
 
+    #Builds the results
     d = {}
     indexes = [r[0] for r in rows]
 
     for label, func in columns:
         d[label] = {}
         d[label]['serie'] = [getattr(r[1], func)() for r in rows]
-        # d[label]['index'] = [r[0] for r in rows]
-        # d.append( (label, pd.Series([getattr(r[1], func)() for r in rows], index=[r[0] for r in rows])))
-    # df = pd.DataFrame.from_dict(dict(d))
 
     result = {}
     for idx in indexes:
@@ -60,15 +58,16 @@ def get_qscore_data(data_folder, run_metrics, valid_to_load, is_nextseq=False):
     """
     Gets the QScore plot data (Number of cluster vs qscore)
     """
-
+    # Defines some class instances
     valid_to_load[py_interop_run.Q]=1
     run_metrics.read(data_folder, valid_to_load)
 
+    # Collects the qscore data
+    # No boundary is defined because it generates a weird display
     bar_data = py_interop_plot.bar_plot_data()
-    # boundary = 30
     options = py_interop_plot.filter_options(run_metrics.run_info().flowcell().naming_method())
 
-    py_interop_plot.plot_qscore_histogram(run_metrics, options, bar_data) # , boundary)
+    py_interop_plot.plot_qscore_histogram(run_metrics, options, bar_data)
     
     values = {}
     widths = {}
@@ -85,6 +84,7 @@ def get_qscore_data(data_folder, run_metrics, valid_to_load, is_nextseq=False):
             if x_lbl + 1 not in values.keys():
                 values[x_lbl + 1] = 0
 
+    # Builds the results
     ordered_values = collections.OrderedDict(sorted(values.items()))
     ordered_widths = collections.OrderedDict(sorted(widths.items()))
 
@@ -154,6 +154,7 @@ def main(argv):
         
     data_folder = argv[1]
 
+    # Defines some class instances
     run_metrics = py_interop_run_metrics.run_metrics()
     valid_to_load = py_interop_run.uchar_vector(py_interop_run.MetricCount, 0)
 
@@ -162,7 +163,6 @@ def main(argv):
     summary_result = {}
     summary_result['qscore'] = get_qscore_data(data_folder, run_metrics, valid_to_load)
     summary_result['summary'] = run_summary(data_folder, run_metrics, valid_to_load)
-
     
     # Write the SAV file to a csv file
     sav_df.to_csv(data_folder + '/00_Ressources/SAV_data.csv', index=False)

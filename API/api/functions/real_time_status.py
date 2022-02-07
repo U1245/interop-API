@@ -11,6 +11,13 @@ from .parse_interop import get_qscore_data
 ## -------------------------------------------------------- ##
 def human_format(num):
     """
+    Converts a number into a human readable format, with size suffix
+
+    Args:
+        num [int]: number to format
+
+    Returns:
+        [str]: formatted number
     """
     level = 0
     while abs(num) >= 1000:
@@ -20,10 +27,19 @@ def human_format(num):
     if np.isnan(num): return '-' 
     return '%.1f%s' % (num, ['', 'K', 'M', 'G', 'T', 'P'][level])
 
+
 def format_q30_plot_data(data, is_nextseq):
     """
     Formats the Q30 plot data specifically for the Sparta front-end
+    
+    Args:
+        data ([type]): [description]
+        is_nextseq (bool): wether the current sequencer is a nextseq
+
+    Returns:
+        [dict]: formatted data to display the real time Qscore bar-chart 
     """
+    # Set-up the result format that has to be returned for the Sparta highchart component needs
     if is_nextseq:
         max_x_label = int(sum(data['widths']) + 10)
     else:
@@ -53,7 +69,7 @@ def format_q30_plot_data(data, is_nextseq):
                     }
                 }
     
-    # Add the qscore serie data, which is different depending on the sequencer type
+    # Adds the qscore serie data, which is different depending on the sequencer type
     if not is_nextseq:
         low_hex_color = ('#f2fbff', '#4db0e8')
         high_hex_color = ('#ebffeb', '#08a11c')
@@ -104,13 +120,19 @@ def format_q30_plot_data(data, is_nextseq):
     return plot_data
 
 
-## RUN INFO
 def run_info(data_folder, result):
     """
+    Picks some metadata about the sequencing run
+
+    Args:
+        data_folder (str): path of the run folder
+        result (dict): global SAV result dict
     """
+    # Defines some class instances
     run_info = py_interop_run.info()
     run_info.read(data_folder)
 
+    # Gets the results
     total_cycles = run_info.total_cycles()
     date = datetime.strptime(run_info.date(), '%y%m%d')
 
@@ -124,29 +146,52 @@ def run_info(data_folder, result):
 ## EXTRACTION METRICS
 def metrics(data_folder, result):
     """
+    Gets the last cycle of the current sequencing run
+
+    Args:
+        data_folder (str): path of the run folder
+        result (dict): global SAV result dict
+
+    Returns:
+        [dict]: gathered results for the current method
     """
+    # Defines some class instances
     run_metrics = py_interop_run_metrics.run_metrics()
     valid_to_load = py_interop_run.uchar_vector(py_interop_run.MetricCount, 0)
     valid_to_load[py_interop_run.Extraction]=1
     run_metrics.read(data_folder, valid_to_load)
 
+    # Gets the last cycle
     extraction_metrics = run_metrics.extraction_metric_set()
     last_cycle = extraction_metrics.max_cycle()
     result['last_cycle'] = last_cycle
     return result
 
-## SUMMARY
 def summary(data_folder, result, is_nextseq=False):
     """
+    Collects the data to build a SAV-like summary table
+
+    Args:
+        data_folder (str): path of the run folder
+        result (dict): global SAV result dict
+        is_nextseq (bool, optional): wether the current sequencer is a nextseq. Defaults to False.
+
+    Returns:
+        [dict]: gathered results for the current method
+
+    Yields:
+        [type]: [description]
     """
+    # Defines some class instances
     run_metrics = py_interop_run_metrics.run_metrics()
     valid_to_load = py_interop_run.uchar_vector(py_interop_run.MetricCount, 0) # Metric selection
     py_interop_run_metrics.list_summary_metrics_to_load(valid_to_load)
     run_metrics.read(data_folder, valid_to_load) # Use metric selection to load data
 
     summary = py_interop_summary.run_summary()
-    py_interop_summary.summarize_run_metrics(run_metrics, summary) # Modules : Run summary --> Metric summary
+    py_interop_summary.summarize_run_metrics(run_metrics, summary)
 
+    # Gets a per-read summary
     density = []
     density_pf = []
     cluster= []
@@ -185,6 +230,15 @@ def summary(data_folder, result, is_nextseq=False):
     return result
 
 def handle_initializing_run(result):
+    """
+    Allows to avoid errors when the run is initializing
+
+    Args:
+        result (dict): global SAV result dict
+
+    Returns:
+        [dict]: filled SAV result dict
+    """
     msg = 'Run is initializing'
 
     result['paired-end'] = msg
@@ -226,6 +280,13 @@ def handle_initializing_run(result):
 
 def run_parameters(data_folder, result, seq):
     """
+    Gets the run parameters, i.e reagents metadata.
+    Based on the runParameter.xml file.
+
+    Args:
+        data_folder (str): path of the run folder
+        result (dict): global SAV result dict
+        seq (str): sequencer name
     """
     param_file = ('R' if seq == 'NextSeq' else 'r') + 'unParameters.xml'
 
@@ -249,6 +310,17 @@ def run_parameters(data_folder, result, seq):
 
 def get_latest_run_status(path, ns_tracking_files_dir, NS_completion_file, MS_completion_file, status):
     """
+    Main method called to update the sequencer real-time status.
+
+    Args:
+        path (str): directory containing data of all the sequencers
+        ns_tracking_files_dir (str): TO BE REMOVED
+        NS_completion_file (str): name of the file produced by the nextseq when the run is over
+        MS_completion_file (str): name of the file produced by the miseq when the run is over
+        status (str): sequencer default on-going status
+
+    Returns:
+        [dict]: global SAV result dict
     """
     # Get the latest runs
     latest_runs = {}
@@ -261,7 +333,7 @@ def get_latest_run_status(path, ns_tracking_files_dir, NS_completion_file, MS_co
     # Parse the latest runs
     result = {}
     for seq, last_run_dir in latest_runs.items():
-        status = 'Idle'
+        # status = 'Idle'
         completion_dt = ''
         error = ''
 
