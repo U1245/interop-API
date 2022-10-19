@@ -323,7 +323,7 @@ def get_latest_run_status(path, NS_completion_file, MS_completion_file):
     # Get the latest runs
     latest_runs = {}
     for seq_dir in [f.path for f in os.scandir(path) if f.is_dir()]:
-        if 'LOGS' not in seq_dir:
+        if any(['MiSeq' in seq_dir, 'NextSeq' in seq_dir]):
             run_dirs = [run_folder.path for run_folder in os.scandir(seq_dir) if os.path.isdir(run_folder)]
             last_run = max(run_dirs, key=os.path.getmtime)
             latest_runs[seq_dir.split('/')[-1]] = last_run
