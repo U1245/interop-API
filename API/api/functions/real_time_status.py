@@ -325,8 +325,12 @@ def get_latest_run_status(path, NS_completion_file, MS_completion_file):
     for seq_dir in [f.path for f in os.scandir(path) if f.is_dir()]:
         if any(['MiSeq' in seq_dir, 'NextSeq' in seq_dir]):
             run_dirs = [run_folder.path for run_folder in os.scandir(seq_dir) if os.path.isdir(run_folder)]
-            last_run = max(run_dirs, key=os.path.getmtime)
-            latest_runs[seq_dir.split('/')[-1]] = last_run
+            
+            # Chose to not display the sequencers with no runfolder
+            if run_dirs:
+                last_run = max(run_dirs, key=os.path.getmtime)
+                latest_runs[seq_dir.split('/')[-1]] = last_run
+
 
     # Parse the latest runs
     result = {}
@@ -360,7 +364,7 @@ def get_latest_run_status(path, NS_completion_file, MS_completion_file):
 
                 status = 'Completed on'
                 completion_dt = dt[0] + '   ' + ':'.join( dt[1].split('.')[0].split(':', 2)[:2] )
-        
+    
         # Collects the results & status
         result[seq] = {}
 
@@ -379,7 +383,7 @@ def get_latest_run_status(path, NS_completion_file, MS_completion_file):
             status = 'Running'
 
         if last_cycle['last_cycle'] == 0: status = 'Initializing'
-        
+    
         result[seq]['status'] = status
         result[seq]['error'] = error
         result[seq]['completion_dt'] = completion_dt

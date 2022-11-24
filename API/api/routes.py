@@ -23,3 +23,7 @@ def real_time_data():
 
     result = get_latest_run_status(path, NS_completed_file, MS_completed_file)
     return result
+
+# # ---------------------
+# if __name__ == "__main__":
+#     real_time_data()

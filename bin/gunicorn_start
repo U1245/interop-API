@@ -1,16 +1,13 @@
 #!/bin/bash
 
 NAME="interop_api"                            # Name of the application
-FLASKDIR=/opt/interop/API                     # Flask project directory
-SOCKFILE=/opt/interop/run/gunicorn.sock       # we will communicte using this unix socket
+FLASKDIR=/opt/interop-api/API                     # Flask project directory
+SOCKFILE=/opt/interop-api/run/gunicorn.sock       # we will communicte using this unix socket
 USER=fournst2 #interop_bot                    # the user to run as
-GROUP=ngs #webapps                            # the group to run as
+GROUP=plateforme #webapps                            # the group to run as
 NUM_WORKERS=3                                 # how many worker processes should Gunicorn spawn
-DJANGO_SETTINGS_MODULE=hello.settings         # which settings file should Django use
 FLASK_WSGI_MODULE=api.wsgi                    # WSGI module name
 VENV=../interop_venv/bin
-
-echo "Starting $NAME as `whoami`"
 
 # Activate the virtual environment
 cd $FLASKDIR
