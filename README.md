@@ -6,86 +6,91 @@ Cette API est basée sur la librairie python [InterOp](http://illumina.github.io
 ## 1. Pré-requis
 - python >= 3.7
 - pip >= 20.0
-- [supervisord](http://supervisord.org/)
-- un reverse proxy (i.e [NGinX](https://www.nginx.com/))[]([[url](url)](url))
+- [NGinX](https://www.nginx.com/)
 
 ## 2. Installation
-Dans un répertoire de votre choix :  
-  * Créer et activer un environnement virtuel python 
+Dans un répertoire de votre choix (i.e /PATH/TO/INTEROP):  
+  
+  * **Cloner le dépôt**  et créer les repertoires de fonctionnements
+  ```
+  mkdir -p /PATH/TO/INTEROP/logs /PATH/TO/INTEROP/run
+  cd /PATH/TO/INTEROP
+  git clone https://gitlab.univ-rouen.fr/ngs-u1245/application-bioinformatique/interop-api.git
+  ```
+
+  * **Créer et activer un environnement virtuel python**  
   ```
   mkdir my_virtual_env
-  python -m venv nf_pyqua_venv my_virtual_env/
+  python -m venv my_virtual_env/
   source my_virtual_env/bin/activate
   ```  
 
-  * Installer le dépôt  
+  * **Installer les dépendances**
   ```
-  pip install git+https://gitlab.univ-rouen.fr/ngs-u1245/application-bioinformatique/interop-api.git
+  pip install -r interop-api/requirements.txt
+  ```  
+
+  * **Adapter le fichier interop-api/bin/gunicorn_start**
+  ```
+  vim /PATH/TO/INTEROP/interop-api/bin/gunicorn_start
   ```
 
-  * Compléter le fichier bin/gunicorn_start
 
-  * Configurer gunicorn pour fonctionner avec supervisord
-    * Créer un répertoire de log, i.e 
+  * **Configurer gunicorn** pour fonctionner avec le systemd
+    * Créer le fichier interop.service
     ```
-    mkdir INTEROP/API/PATH/logs
-    ```
-    * Créer et ouvrir un fichier interop_api.ini dans /etc/supervisord.d/
-    ```
-    vim /etc/supervisord.d/interop_api.ini
+    vim /etc/systemd/system/interop.service
     ```
     * Copier et compléter les commandes suivantes
     ```
-    [program:interop_API]
-    command = INTEROP/API/PATH/bin/gunicorn_start
-    user = YOUR_USERNAME
-    stdout_logfile = INTEROP/API/PATH/logs/gunicorn_supervisor.log
-    redirect_stderr = true
-    environment=LANG=en_US.UTF-8,LC_ALL=en_US.UTF-8
+    [Unit]
+    Description=Gunicorn instance to serve the Flask interOP API
+    After=network.target
+    
+    [Service]
+    User=USER
+    Group=GROUP
+    WorkingDirectory=/PATH/TO/INTEROP/interop-api/API
+    Environment='PATH=/PATH/TO/INTEROP/interop_venv/bin'
+    ExecStart=/PATH/TO/INTEROP/interop-api/bin/gunicorn_start
+    
+    [Install]
+    WantedBy=multi-user.target
     ```
-    * Mettre à jour supervisord et lancer le process interop_API
+    * **Redémarrer le daemon systeme et lancer le service interOP**
     ```
-    sudo supervisorctl reread
-    sudo supervisorctl update
-    sudo supervisorctl restart interop_API
+    sudo systemctl daemon-reload
+    sudo systemctl start interop
+    sudo systemctl enable interop
     ```
-    * Vérifier que le process tourne
+    * Vérifier que le service tourne correctement
     ```
-    sudo supervisorctl status
+    sudo systemctl status interop
     ```
   
-  * Configurer le serveur web / reverse-proxy, i.e NGinX
-    * Créer le repertoire du socket qui permettra à gunicorn de communiquer avec NGinX
+  * **Configurer NGinX** 
+    * **Créer le fichier de configuration interop pour NGinX**
     ```
-    mkdir INTEROP/API/PATH/run
-    ```
-    * Créer le fichier de configuration dans les sites disponibles
-    ```
-    vim /etc/nginx/sites-available/interop-api
+    vim /etc/nginx/conf.d/interop.conf
     ```
     * Copier et adapter la configuration suivante, puis enregistrer
     ```
-    upstream hello_app_server {
-      server unix:INTEROP/API/PATH/run/gunicorn.sock fail_timeout=0;
-    }
-
     server {
-    listen 80;
-    server_name interop_api YOUR.URL.NAME;
+        listen 80;
+        server_name YOUR_DOMAIN;
 
-    access_log INTEROP/API/PATH/logs/nginx-access.log;
-    error_log INTEROP/API/PATH/logs/nginx-error.log;
+        access_log /PATH/TO/INTEROP/logs/nginx-access.log;
+        error_log /PATH/TO/INTEROP/logs/nginx-error.log;
 
-    location / {
-        include prox_params;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
+        location / {
+            include proxy_params;
+            proxy_pass http://unix:/PATH/TO/INTEROP/run/gunicorn.sock;
+        }
     }
     ```
-    * Rendre disponible la configuration et redémarrer NGinX
+    * **Redémarrer NGinX**
     ```
-    sudo ln -s /etc/nginx/sites-available/interop-api /etc/nginx/sites-enabled
     sudo systemctl restart nginx
     ```
+
+    * **Tester une requete sur YOUR_DOMAIN/interop**

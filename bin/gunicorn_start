@@ -1,13 +1,13 @@
 #!/bin/bash
 
 NAME="interop_api"                            # Name of the application
-FLASKDIR=/opt/interop-api/API                     # Flask project directory
-SOCKFILE=/opt/interop-api/run/gunicorn.sock       # we will communicte using this unix socket
-USER=fournst2 #interop_bot                    # the user to run as
-GROUP=plateforme #webapps                            # the group to run as
+FLASKDIR=/PATH/TO/INTEROP/API                     
+SOCKFILE=/PATH/TO/INTEROP/run/gunicorn.sock       
+USER=USERNAME
+GROUP=GROUPNAME
 NUM_WORKERS=3                                 # how many worker processes should Gunicorn spawn
 FLASK_WSGI_MODULE=api.wsgi                    # WSGI module name
-VENV=../interop_venv/bin
+VENV=/PATH/TO/VENV/bin
 
 # Activate the virtual environment
 cd $FLASKDIR
@@ -20,7 +20,7 @@ RUNDIR=$(dirname $SOCKFILE)
 test -d $RUNDIR || mkdir -p $RUNDIR
 
 # Start your Flask Unicorn
-# Programs meant to be run under supervisor should not daemonize themselves (do not use --daemon)
+# Programs meant to be run under systemd should not daemonize themselves (do not use --daemon)
 exec $VENV/gunicorn ${FLASK_WSGI_MODULE}:app \
   --name $NAME \
   --bind=unix:$SOCKFILE \
