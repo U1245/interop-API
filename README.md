@@ -9,13 +9,13 @@ Cette API est basée sur la librairie python [InterOp](http://illumina.github.io
 - [NGinX](https://www.nginx.com/)
 
 ## 2. Installation
-Dans un répertoire de votre choix (i.e /PATH/TO/INTEROP):  
+Dans un répertoire de votre choix :  
   
   * **Cloner le dépôt**  et créer les repertoires de fonctionnements
   ```
-  mkdir -p /PATH/TO/INTEROP/logs /PATH/TO/INTEROP/run
-  cd /PATH/TO/INTEROP
   git clone https://gitlab.univ-rouen.fr/ngs-u1245/application-bioinformatique/interop-api.git
+  cd /PATH/TO/interop-api
+  mkdir logs run
   ```
 
   * **Créer et activer un environnement virtuel python**  
@@ -27,12 +27,12 @@ Dans un répertoire de votre choix (i.e /PATH/TO/INTEROP):
 
   * **Installer les dépendances**
   ```
-  pip install -r interop-api/requirements.txt
+  pip install -r requirements.txt
   ```  
 
   * **Adapter le fichier interop-api/bin/gunicorn_start**
   ```
-  vim /PATH/TO/INTEROP/interop-api/bin/gunicorn_start
+  vim /PATH/TO/interop-api/bin/gunicorn_start
   ```
 
 
@@ -50,9 +50,9 @@ Dans un répertoire de votre choix (i.e /PATH/TO/INTEROP):
     [Service]
     User=USER
     Group=GROUP
-    WorkingDirectory=/PATH/TO/INTEROP/interop-api/API
-    Environment='PATH=/PATH/TO/INTEROP/interop_venv/bin'
-    ExecStart=/PATH/TO/INTEROP/interop-api/bin/gunicorn_start
+    WorkingDirectory=/PATH/TO/interop-api/API
+    Environment='PATH=/PATH/TO/interop_venv/bin'
+    ExecStart=/PATH/TO/interop-api/bin/gunicorn_start
     
     [Install]
     WantedBy=multi-user.target
@@ -79,12 +79,12 @@ Dans un répertoire de votre choix (i.e /PATH/TO/INTEROP):
         listen 80;
         server_name YOUR_DOMAIN;
 
-        access_log /PATH/TO/INTEROP/logs/nginx-access.log;
-        error_log /PATH/TO/INTEROP/logs/nginx-error.log;
+        access_log /PATH/TO/interop-api/logs/nginx-access.log;
+        error_log /PATH/TO/interop-api/logs/nginx-error.log;
 
         location / {
             include proxy_params;
-            proxy_pass http://unix:/PATH/TO/INTEROP/run/gunicorn.sock;
+            proxy_pass http://unix:/PATH/TO/interop-api/run/gunicorn.sock;
         }
     }
     ```
