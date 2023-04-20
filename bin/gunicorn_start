@@ -1,13 +1,13 @@
 #!/bin/bash
 
 NAME="interop_api"                            # Name of the application
-FLASKDIR=/PATH/TO/INTEROP/API                     
-SOCKFILE=/PATH/TO/INTEROP/run/gunicorn.sock       
-USER=USERNAME
-GROUP=GROUPNAME
+FLASKDIR=/opt/interop-api/API                     
+SOCKFILE=/opt/interop-api/run/gunicorn.sock       
+USER=fournst2
+GROUP=ngs-admin
 NUM_WORKERS=3                                 # how many worker processes should Gunicorn spawn
 FLASK_WSGI_MODULE=api.wsgi                    # WSGI module name
-VENV=/PATH/TO/VENV/bin
+VENV=/opt/interop-api/interop_venv/bin
 
 # Activate the virtual environment
 cd $FLASKDIR
