@@ -8,6 +8,7 @@ GROUP=ngs-admin
 NUM_WORKERS=3                                 # how many worker processes should Gunicorn spawn
 FLASK_WSGI_MODULE=API.wsgi                    # WSGI module name
 VENV=/opt/interop-api/interop_venv/bin
+LOGFILE=$FLASKDIR/logs/interop.log
 
 # Activate the virtual environment
 cd $FLASKDIR
@@ -27,4 +28,4 @@ exec $VENV/gunicorn ${FLASK_WSGI_MODULE}:app \
   --workers $NUM_WORKERS \
   --user=$USER --group=$GROUP \
   --log-level=debug \
-  --log-file=-
+  --log-file=$LOGFILE

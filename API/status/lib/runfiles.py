@@ -66,42 +66,23 @@ def run_parameters(data_folder, result, seq):
 def check_completion_files(seq, last_rundir, status):
     """
     """
-    NS_completion_file = last_rundir + '/RunCompletionStatus.xml'
-    MS_completion_file = last_rundir + '/CompletedJobInfo.xml'
-    generic_completion_file = last_rundir + '/RTAComplete.txt'
+    # Init vars
+    generic_completion_file = last_rundir + '/CopyComplete.txt'
+    partial_completion_file = last_rundir + '/RTAComplete.txt'
+    MS_completion_file = last_rundir + '/Basecalling_Netcopy_complete.txt'
+
     completion_dt = ''
 
-    if 'nextseq' in seq.lower():
-        if os.path.exists(NS_completion_file):
-            # Run status
-            tree = ET.parse(NS_completion_file)
-            root = tree.getroot()
-            status_node = root.find('CompletionStatus')
+    # Choose the completion file based on the sequencer
+    completion_file = MS_completion_file if 'miseq' in seq.lower() else generic_completion_file
 
-            # Completion datetime : last modification of the 'NS_completion_file' file
-            timestamp = os.path.getmtime(NS_completion_file)
+    # Check if the completion file exists
+    if os.path.exists(completion_file):
+        timestamp = os.path.getmtime(generic_completion_file)
+        completion_dt = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d   %H:%M')
 
-            if 'completedasplanned' in status_node.text.lower(): status = 'Completed on' 
-            completion_dt = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d   %H:%M')
-
-    if 'miseq' in seq.lower():
-        if os.path.exists(MS_completion_file):
-            tree = ET.parse(MS_completion_file)
-            root = tree.getroot()
-            status_node = root.find('CompletionTime')
-            dt = status_node.text.split('T')
-
-            completion_dt = dt[0] + '   ' + ':'.join( dt[1].split('.')[0].split(':', 2)[:2] )
-        
-        elif os.path.exists(generic_completion_file):
-            timestamp = os.path.getmtime(generic_completion_file)
-            completion_dt = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d   %H:%M')
-
-    if 'novaseq' in seq.lower():
-        if os.path.exists(generic_completion_file):
-            timestamp = os.path.getmtime(generic_completion_file)
-            completion_dt = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d   %H:%M')
-
+    # Determine the status based on the existing --completion-- files
     if completion_dt: status = 'Completed on'
+    elif os.path.exists(partial_completion_file): status = 'Finalizing'
     
     return status, completion_dt

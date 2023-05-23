@@ -55,11 +55,14 @@ def handle_initializing_run(result):
     return result
 
 
-def get_latest_run_status():
+def get_latest_run_status(store_root):
     """
+    Args:
+      - store_root(str): path of the root directory for the stores
     """
+
     # Find the root dir for each sequencer
-    rootdirs = get_sequencer_rootdir("/storage/IN")
+    rootdirs = get_sequencer_rootdir(store_root)
 
     # Get the latest runfolder for each sequencer
     latest_runs = get_sequencer_latest_run(rootdirs)
