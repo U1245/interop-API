@@ -44,8 +44,10 @@ def get_sequencer_latest_run(rootdirs):
                 A_side_runs = [run for run in run_dirs if run.split('_')[-1].startswith('A')]
                 B_side_runs = [run for run in run_dirs if run.split('_')[-1].startswith('B')]
 
-                latest_runs[seq + '_A'] = get_latest_runfolder(A_side_runs)
-                latest_runs[seq + '_B'] = get_latest_runfolder(B_side_runs)
+                if A_side_runs:
+                    latest_runs[seq + '_A'] = get_latest_runfolder(A_side_runs)
+                if B_side_runs:
+                    latest_runs[seq + '_B'] = get_latest_runfolder(B_side_runs)
 
             else:
                 latest_runs[seq] = get_latest_runfolder(run_dirs)

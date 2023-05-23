@@ -2,7 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 
 # from .functions.real_time_status import get_latest_run_status
-from api.test_api.rt_status import get_latest_run_status
+from api.status.main import get_latest_run_status
 
 # Init the app
 app = Flask(__name__)
@@ -17,7 +17,7 @@ def real_time_data():
     Returns:
         [dict]: global SAV result dict
     """
- 
+
     path = '/storage/IN/'
     NS_completed_file = 'RunCompletionStatus.xml'
     MS_completed_file = 'CompletedJobInfo.xml'
