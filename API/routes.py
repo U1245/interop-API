@@ -2,7 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 
 # from .functions.real_time_status import get_latest_run_status
-from api.status.main import get_latest_run_status
+from API.status.main import get_latest_run_status
 
 # Init the app
 app = Flask(__name__)
