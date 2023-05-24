@@ -69,16 +69,16 @@ def check_completion_files(seq, last_rundir, status):
     # Init vars
     generic_completion_file = last_rundir + '/CopyComplete.txt'
     partial_completion_file = last_rundir + '/RTAComplete.txt'
-    MS_completion_file = last_rundir + '/Basecalling_Netcopy_complete.txt'
+    # MS_completion_file = last_rundir + '/Basecalling_Netcopy_complete.txt'
 
     completion_dt = ''
 
     # Choose the completion file based on the sequencer
-    completion_file = MS_completion_file if 'miseq' in seq.lower() else generic_completion_file
+    completion_file = partial_completion_file if 'miseq' in seq.lower() else generic_completion_file
 
     # Check if the completion file exists
     if os.path.exists(completion_file):
-        timestamp = os.path.getmtime(generic_completion_file)
+        timestamp = os.path.getmtime(completion_file)
         completion_dt = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d   %H:%M')
 
     # Determine the status based on the existing --completion-- files
