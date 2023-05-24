@@ -83,6 +83,7 @@ def check_completion_files(seq, last_rundir, status):
 
     # Determine the status based on the existing --completion-- files
     if completion_dt: status = 'Completed on'
-    elif os.path.exists(partial_completion_file): status = 'Finalizing'
+    elif os.path.exists(partial_completion_file) and 'miseq' not in seq.lower(): 
+        status = 'Finalizing'
     
     return status, completion_dt
