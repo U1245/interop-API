@@ -1,4 +1,5 @@
 import os
+import glob
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
@@ -13,9 +14,12 @@ def run_parameters(data_folder, result, seq):
         result (dict): global SAV result dict
         seq (str): sequencer name
     """
-    param_file = ('r' if 'miseq' in seq.lower() else 'R') + 'unParameters.xml'
 
-    param_tree = ET.parse(data_folder + '/' + param_file)
+    # Get the run parameter file, no matter what the syntax is
+    param_file = glob.glob(data_folder + '/[rR]unParameters.xml')[0]
+        #    ('r' if 'miseq' in seq.lower() else 'R') + 'unParameters.xml'
+
+    param_tree = ET.parse(param_file)
     root = param_tree.getroot()
 
     try:
