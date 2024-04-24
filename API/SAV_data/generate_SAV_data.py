@@ -1,33 +1,67 @@
-import sys
+"""
+Resume:
+    InterOP API - Parsing the InterOP files
+
+Description:
+    Main script performing the analysis of the interop files present in a run folder.
+    The purpose is to have a SAV-like (Sequence Analysis Data) interface in a local web app.
+    Produces 2 files :
+        - A Run summary file (JSON), including :
+            - Values for the Qscore plot
+            - Values for the 'summary' table
+        - A SAV data file (CSV), containing the per Lane / Tile / Cycle data.
+    
+    _Script based on the Illumina InterOP python library
+    __Documentation : 
+        - source : https://illumina.github.io/interop/index.html
+        - examples : https://illumina.github.io/interop/example_summary.html
+                     https://illumina.github.io/interop/namespacecore.html
+
+Author(s):
+    Steeve Fourneaux
+Date(s):
+    2022
+Credits:
+    Steeve Fourneaux
+"""
 import json
+import argparse
 import collections
 import numpy as np
 import pandas as pd
 
-from interop import py_interop_run_metrics, py_interop_run, py_interop_summary, py_interop_table, py_interop_metrics, index_summary, py_interop_plot
+from interop import py_interop_run_metrics, py_interop_run, py_interop_summary, py_interop_table, py_interop_plot
 
 
 ## -------------- SAV METRICS FOR SPARTA -------------- ##
 ## ---------------------------------------------------- ##
-def run_summary(data_folder, run_metrics, valid_to_load):
+def run_summary(run_folder, run_metrics, valid_to_load):
+    """Gets the summary of a run
+
+    Args:
+        run_folder (str): path of the run folder to analyse
+        run_metrics (class): run_metrics class instance. Holding the binary interOP data
+        valid_to_load (uchar_vector): array indicating which InterOp files (== metrics) to load
+
+    Returns:
+        dict: per-read & total summary data. The collected metrics are listed in the 'columns' variable
     """
-    Gets the summary of a run
-    """
+    
     # Defines some class instances
     py_interop_run_metrics.list_summary_metrics_to_load(valid_to_load)
-    run_metrics.read(data_folder, valid_to_load)
+    run_metrics.read(run_folder, valid_to_load)
 
     summary = py_interop_summary.run_summary()
     py_interop_summary.summarize_run_metrics(run_metrics, summary)
 
     # Defines the columns to get
     columns = (
-        ('Yield Total (G)', 'yield_g'), 
-        ('Projected Yield (G)', 'projected_yield_g'), 
-        ('% Aligned', 'percent_aligned'), 
-        ('% Occupied', 'percent_occupied'), 
-        ('% > Q30', 'percent_gt_q30'), 
-        ('Error rate', 'error_rate')
+            ('Yield Total (G)', 'yield_g'), 
+            ('Projected Yield (G)', 'projected_yield_g'), 
+            ('% Aligned', 'percent_aligned'), 
+            ('% Occupied', 'percent_occupied'), 
+            ('% > Q30', 'percent_gt_q30'), 
+            ('Error rate', 'error_rate')
         )
 
     # Builds the rows
@@ -48,19 +82,29 @@ def run_summary(data_folder, run_metrics, valid_to_load):
         result[idx] = {}
         for label in d.keys():
             val = d[label]['serie'][indexes.index(idx)]
-            if np.isnan(val): val = 'NaN'
-            result[idx][label] = val
+            # if np.isnan(val): val = 'NaN'
+            # result[idx][label] = val
+            
+            result[idx][label] = 'NaN' if np.isnan(val) else val
 
     return result
 
 
-def get_qscore_data(data_folder, run_metrics, valid_to_load, is_nextseq=False):
-    """
-    Gets the QScore plot data (Number of cluster vs qscore)
+def get_qscore_data(run_folder, run_metrics, valid_to_load, is_nextseq=False):
+    """Gets the QScore plot data (Number of cluster vs qscore)
+
+    Args:
+        run_folder (str): path of the run folder to analyse
+        run_metrics (class): run_metrics class instance. Holding the binary interOP data.
+        valid_to_load (uchar_vector): array indicating which InterOp files (== metrics) to load
+        is_nextseq (bool, optional): whether the current sequencer is a NextSeq. Defaults to False.
+
+    Returns:
+        _type_: _description_
     """
     # Defines some class instances
     valid_to_load[py_interop_run.Q]=1
-    run_metrics.read(data_folder, valid_to_load)
+    run_metrics.read(run_folder, valid_to_load)
 
     # Collects the qscore data
     # No boundary is defined because it generates a weird display
@@ -101,13 +145,21 @@ def get_qscore_data(data_folder, run_metrics, valid_to_load, is_nextseq=False):
     return result
 
 
-def sav_metrics(data_folder, run_metrics, valid_to_load):
+def sav_metrics(run_folder, run_metrics, valid_to_load):
+    """Gets the 'by cycle' and 'by lane' SAV data
+
+    Args:
+        run_folder (str): path of the run folder to analyse
+        run_metrics (class): run_metrics class instance. Holding the binary interOP data.
+        valid_to_load (uchar_vector): array indicating which InterOp files (== metrics) to load
+
+    Returns:
+        pandas.DataFrame: SAV datatable
     """
-    Gets the 'by cycle' and 'by lane' SAV data
-    """
+
     # Load the interop files
     py_interop_run_metrics.list_summary_metrics_to_load(valid_to_load, False)
-    run_metrics.read(data_folder, valid_to_load)
+    run_metrics.read(run_folder, valid_to_load)
 
     # The column headers for the imaging table can be created as follows:
     columns = py_interop_table.imaging_column_vector()
@@ -140,40 +192,45 @@ def sav_metrics(data_folder, run_metrics, valid_to_load):
     return df
 
 
-def main(argv):
+def main():
     """
     Core method made to parse the Illumina InterOp files.
-    Produce 4 main results designed from the SAV summary tab:
-        - Data by cycle, written within a csv file
-        - Data by lane, written within a csv file
-        - QScore data, written within a json file
+
+    Produce 2 results designed from the SAV summary tab:
         - Run summary data, written within a json file
+        - SAV data as a csv file for further use in the quality pipeline
     """
-    if len(argv) != 2:
-        exit('ERROR : wrong argument number')
-        
-    data_folder = argv[1]
+    # Arguments
+    parser = argparse.ArgumentParser(description='InterOP API - SAV Analysis')
+    parser.add_argument('-i', '--input', help='Path of the runfolder to be analysed', required=True)
+    parser.add_argument('-o', '--output', help='Path of the output dierctory. The output files will be written in that dir.', required=True)
+
+    # Initiate some variables based on the arguments
+    args = parser.parse_args()
+    input_dir = args.input
+    output_dir = args.output
 
     # Defines some class instances
     run_metrics = py_interop_run_metrics.run_metrics()
     valid_to_load = py_interop_run.uchar_vector(py_interop_run.MetricCount, 0)
 
-    sav_df = sav_metrics(data_folder, run_metrics, valid_to_load)
+    # Compute the results
+    sav_df = sav_metrics(input_dir, run_metrics, valid_to_load)
 
     summary_result = {}
-    summary_result['qscore'] = get_qscore_data(data_folder, run_metrics, valid_to_load)
-    summary_result['summary'] = run_summary(data_folder, run_metrics, valid_to_load)
+    summary_result['qscore'] = get_qscore_data(input_dir, run_metrics, valid_to_load)
+    summary_result['summary'] = run_summary(input_dir, run_metrics, valid_to_load)
     
     # Write the SAV file to a csv file
-    sav_df.to_csv(data_folder + '/00_Ressources/SAV_data.csv', index=False)
+    sav_df.to_csv(output_dir + 'SAV_data.csv', index=False)
 
     # Write the run summary file to a json file
-    with open(data_folder + '/00_Ressources/Run_summary.json', 'w') as f:
+    with open(output_dir + 'Run_summary.json', 'w') as f:
         f.write(json.dumps(summary_result, indent=4))
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
 
 
 
