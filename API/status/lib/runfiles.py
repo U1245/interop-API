@@ -15,9 +15,8 @@ def run_parameters(data_folder, result, seq):
         seq (str): sequencer name
     """
 
-    # Get the run parameter file, no matter what the syntax is
+    # Get the run parameter file, no matter the syntax is
     param_file = glob.glob(data_folder + '/[rR]unParameters.xml')[0]
-        #    ('r' if 'miseq' in seq.lower() else 'R') + 'unParameters.xml'
 
     param_tree = ET.parse(param_file)
     root = param_tree.getroot()
