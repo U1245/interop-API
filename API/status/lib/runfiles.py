@@ -1,3 +1,17 @@
+"""
+Resume:
+    InterOP API - Parsing & serving the InterOP data
+
+Description:
+      Methods to manage the run files
+
+Author(s):
+    Steeve Fourneaux
+Date(s):
+    2022
+Credits:
+    Steeve Fourneaux
+"""
 import os
 import glob
 import xml.etree.ElementTree as ET
@@ -16,7 +30,7 @@ def run_parameters(data_folder, result, seq):
     """
 
     # Get the run parameter file, no matter the syntax is
-    param_file = glob.glob(data_folder + '/[rR]unParameters.xml')[0]
+    param_file = glob.glob(data_folder + '/*unParameters.xml')[0]
 
     param_tree = ET.parse(param_file)
     root = param_tree.getroot()
@@ -67,7 +81,15 @@ def run_parameters(data_folder, result, seq):
 
 
 def check_completion_files(seq, last_rundir, status):
-    """
+    """Verify if the completion files are presents in a run folder
+
+    Args:
+        seq (str): sequencer name
+        last_rundir (str): path to the latest run directory for the current sequencer
+        status (str): current status of the sequencer
+
+    Returns:
+        tuple(str,datetime): updated status & completion datetime
     """
     # Init vars
     generic_completion_file = last_rundir + '/CopyComplete.txt'

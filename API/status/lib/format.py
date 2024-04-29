@@ -1,4 +1,18 @@
 
+"""
+Resume:
+    InterOP API - Parsing & serving the InterOP data
+
+Description:
+    Methods to format the data
+
+Author(s):
+    Steeve Fourneaux
+Date(s):
+    2022
+Credits:
+    Steeve Fourneaux
+"""
 import numpy as np
 
 
@@ -26,8 +40,8 @@ def format_q30_plot_data(data, seq): #is_nextseq
     Formats the Q30 plot data specifically for the Sparta front-end
     
     Args:
-        data ([type]): [description]
-        is_nextseq (bool): wether the current sequencer is a nextseq
+        data (): [description]
+        seq (str): sequencer name
 
     Returns:
         [dict]: formatted data to display the real time Qscore bar-chart 

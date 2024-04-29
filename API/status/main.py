@@ -1,3 +1,17 @@
+"""
+Resume:
+    InterOP API - Parsing & serving the InterOP data
+
+Description:
+      Core method gathering real time quality data for each sequencer
+
+Author(s):
+    Steeve Fourneaux
+Date(s):
+    2022
+Credits:
+    Steeve Fourneaux
+"""
 import os
 
 from .lib.interop import run_info, metrics, summary
@@ -10,59 +24,70 @@ def handle_initializing_run(result):
     Allows to avoid errors when the run is initializing
 
     Args:
-        result (dict): global SAV result dict
+        result (dict): empty SAV result
 
     Returns:
         [dict]: filled SAV result dict
     """
     msg = 'Run is initializing'
 
-    result['paired-end'] = msg
-    result['total_cycles'] = 0
-    result['last_cycle'] = 0
-    result['inst_name'] = ''
-    result['run_name'] = msg
-    result['date'] = ''
-    result['flowcell_id'] = msg
+    return {**result,
+            'paired-end': msg,
+            'total_cycles': 0,
+            'last_cycles': 0,
+            'run-name': msg,
+            'flowcell_id': msg,
+            'inst_name': '',
+            'date': '',
 
-    result['p_gt_q30'] = ''
-    result['total_yield'] = ''
-    result['percent_aligned'] = ''
-    result['cluster_density'] = ''
-    result['cluster_pf_percent'] = ''
-    result['reads'] = []
-    result['q30_plot'] = {
-        'data':{ 'charts': {
-                        'level': 'Q score',
-                        'dataset_label': '',
-                        'header': '',
-                        'subheader': '',
-                        'xaxis_labels': [],
-                        'x_limits': [],
-                        'yaxis_label': '',
-                        'series': {
-                            'data': [], 
-                            'metadata': {
-                                'limits': [{'read': '', 'cycle_nb': 0}],
+            'p_gt_q30': '',
+            'total_yield': '',
+            'percent_aligned': '',
+            'cluster_density': '',
+            'cluster_pf_percent': '',
+            'reads': '',
+            'status': 'Initializing',
+            'error': '',
+            'q30_plot': {
+                            'data':{
+                                'charts': {
+                                    'level': 'Q score',
+                                    'dataset_label': '',
+                                    'header': '',
+                                    'subheader': '',
+                                    'xaxis_labels': [],
+                                    'x_limits': [],
+                                    'yaxis_label': '',
+                                    'series': {
+                                        'data': [],
+                                        'metadata': {
+                                            'limits': [{'read': '', 'cycle_nb': 0}],
+                                        }
+                                    }
+                                }
+                            },
+                            'options': {
+                                'value': {'scale': 'interop', 'chart': ''}
                             }
                         }
-                }
-            },
-        'options': {'value': {'scale': 'interop', 'chart': ''}}
-    }
-    result['status'] = 'Initializing'
-    result['error'] = ''
-    return result
+            }
 
 
-def get_latest_run_status(store_root):
-    """
+def get_latest_run_status(store_root, seq_list, seq_nb):
+    """Core method to get the main quality metrics for the latest runs of each sequencer.
+    Based on the real time copy of the sequenceur files to the acquisition server.
+
+    Parse a -store_root- folder containing the sequencer directories.
+    Gets the latest run folder for each sequencer (in each seq directory).
+
     Args:
-      - store_root(str): path of the root directory for the stores
-    """
+        store_root (str): path to the main storage. Should contain 1 dir per sequencer.
 
+    Returns:
+        dict: Per-sequencer real time quality metrics
+    """
     # Find the root dir for each sequencer
-    rootdirs = get_sequencer_rootdir(store_root)
+    rootdirs = get_sequencer_rootdir(store_root, seq_list, seq_nb)
 
     # Get the latest runfolder for each sequencer
     latest_runs = get_sequencer_latest_run(rootdirs)

@@ -1,6 +1,6 @@
 """
 Resume:
-    InterOP API - Parsing the InterOP files
+    InterOP API - Parsing & serving the InterOP data
 
 Description:
     Main script performing the analysis of the interop files present in a run folder.
@@ -100,7 +100,7 @@ def get_qscore_data(run_folder, run_metrics, valid_to_load, is_nextseq=False):
         is_nextseq (bool, optional): whether the current sequencer is a NextSeq. Defaults to False.
 
     Returns:
-        _type_: _description_
+        dict: qscore plot data
     """
     # Defines some class instances
     valid_to_load[py_interop_run.Q]=1

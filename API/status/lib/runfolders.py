@@ -1,16 +1,47 @@
+"""
+Resume:
+    InterOP API - Parsing & serving the InterOP data
+
+Description:
+      Methods to manage the run directories
+
+Author(s):
+    Steeve Fourneaux
+Date(s):
+    2022
+Credits:
+    Steeve Fourneaux
+"""
 import re
 import os
 
 
 def get_latest_runfolder(run_dirs):
+    """Get the most recent run folder for a given sequencer
+
+    Args:
+        run_dirs (list): list of all the runfolders for a sequencer
+
+    Returns:
+        str: the most recent run folder
+    """
     return max(run_dirs, key=os.path.getmtime)
 
 
-def get_sequencer_rootdir(root):
+def get_sequencer_rootdir(root, seq_list, seq_nb):
+    """Get the main runfolder storage path of a sequencer.
+    Some sequencer root folder may not contain the runs.
+    A regex allows to find a match on the Illumina runfolder name format.
+
+    Args:
+        root (str): path to the main storage. Should contain 1 dir per sequencer.
+
+    Returns:
+        list: a rootdir path for each sequencer
+    """
     # Find the root dir for each sequencer
-    # rootdir = "/storage/IN"
-    seq_list = ['MiSeq', 'NextSeq', 'NovaSeq']
-    seq_nb = 4
+    # seq_list = ['MiSeq', 'NextSeq', 'NovaSeq']
+    # seq_nb = 
     seq_rootdirs = []
 
     # regex matching the run folder name format
@@ -31,6 +62,14 @@ def get_sequencer_rootdir(root):
 
 
 def get_sequencer_latest_run(rootdirs):
+    """Get the latest runfolderfor each sequencer
+
+    Args:
+        rootdirs (str): path of the root directory for a sequencer. e.g /PATH/TO/MAIN/STORAGE/MiSeq
+
+    Returns:
+        dict: the last run of each sequencer, even the completed ones
+    """
     # Get the latest runfolder for each sequencer
     latest_runs = {}
     for seq_dir in rootdirs:

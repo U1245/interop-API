@@ -1,3 +1,17 @@
+"""
+Resume:
+    InterOP API - Parsing & serving the InterOP data
+
+Description:
+      InterOP based methods. Gather the main interOP / SAV metrics
+
+Author(s):
+    Steeve Fourneaux
+Date(s):
+    2022
+Credits:
+    Steeve Fourneaux
+"""
 import collections
 import numpy as np
 from datetime import datetime
@@ -8,8 +22,7 @@ from .format import convert_number_format, format_q30_plot_data
 
 
 def run_info(data_folder, result):
-    """
-    Picks some metadata about the sequencing run
+    """Picks some metadata about the sequencing run
 
     Args:
         data_folder (str): path of the run folder
@@ -36,8 +49,7 @@ def run_info(data_folder, result):
 
 ## EXTRACTION METRICS
 def metrics(data_folder, result):
-    """
-    Gets the last cycle of the current sequencing run
+    """Gets the last cycle of the current sequencing run
 
     Args:
         data_folder (str): path of the run folder
@@ -59,9 +71,8 @@ def metrics(data_folder, result):
     return result
 
 
-def summary(data_folder, result, seq): #is_nextseq=False
-    """
-    Collects the data to build a SAV-like summary table
+def summary(data_folder, result, seq):
+    """Collects the data to build a SAV-like summary table
 
     Args:
         data_folder (str): path of the run folder
@@ -70,9 +81,6 @@ def summary(data_folder, result, seq): #is_nextseq=False
 
     Returns:
         [dict]: gathered results for the current method
-
-    Yields:
-        [type]: [description]
     """
     # Defines some class instances
     run_metrics = py_interop_run_metrics.run_metrics()
@@ -133,11 +141,19 @@ def summary(data_folder, result, seq): #is_nextseq=False
     return result
 
 
-
 def get_qscore_data(data_folder, run_metrics, valid_to_load, seq):
+    """Gets the QScore plot data (Number of cluster vs qscore)
+
+    Args:
+        run_folder (str): path of the run folder to analyse
+        run_metrics (class): run_metrics class instance. Holding the binary interOP data.
+        valid_to_load (uchar_vector): array indicating which InterOp files (== metrics) to load
+        seq (str): sequencer name
+
+    Returns:
+        dict: qscore plot data
     """
-    Gets the QScore plot data (Number of cluster vs qscore)
-    """
+
     # Defines some class instances
     valid_to_load[py_interop_run.Q]=1
     run_metrics.read(data_folder, valid_to_load)
